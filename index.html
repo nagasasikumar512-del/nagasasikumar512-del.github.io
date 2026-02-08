@@ -1,179 +1,158 @@
 <!DOCTYPE html>
+
 <html>
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EasyReward</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
 body {
   margin: 0;
   font-family: Arial;
   background: linear-gradient(135deg,#1e3c72,#2a5298);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
 }
 
 .box {
-  background: white;
-  padding: 25px;
-  border-radius: 15px;
-  width: 90%;
-  max-width: 380px;
-  text-align: center;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  background:white;
+  padding:25px;
+  border-radius:16px;
+  width:90%;
+  max-width:420px;
+  text-align:center;
+  box-shadow:0 10px 25px rgba(0,0,0,0.2);
 }
 
-h2 {
-  margin-bottom: 20px;
+input,button{
+  width:100%;
+  padding:14px;
+  margin:8px 0;
+  border-radius:8px;
+  border:1px solid #ccc;
+  font-size:16px;
 }
 
-input, button {
-  width: 100%;
-  padding: 14px;
-  margin: 8px 0;
-  border-radius: 8px;
-  border: 1px solid #ccc;
-  font-size: 16px;
+button{
+  background:#2a5298;
+  color:white;
+  border:none;
 }
 
-button {
-  background: #3b5998;
-  color: white;
-  border: none;
-  cursor: pointer;
-}
-
-button.google {
-  background: #eee;
-  color: black;
+.google{
+  background:#f5f5f5;
+  color:black;
+  border:1px solid #ccc;
 }
 </style>
+
 </head>
 
 <body>
 
-<!-- LOGIN -->
 <div id="loginBox" class="box">
-  <h2>EasyReward 💰</h2>
-  <input id="email" placeholder="Email">
-  <input id="password" type="password" placeholder="Password">
-  <button onclick="signup()">Sign Up</button>
-  <button onclick="login()">Login</button>
-  <button class="google" onclick="googleLogin()">Continue with Google</button>
+<h2>EasyReward 💰</h2>
+
+<input id="email" placeholder="Email">
+<input id="password" type="password" placeholder="Password">
+
+<button onclick="signup()">Sign Up</button> <button onclick="login()">Login</button> <button class="google" onclick="googleLogin()">Continue with Google</button>
+
 </div>
 
-<!-- DASHBOARD -->
-<div id="dashboardBox" class="box" style="display:none;">
-  <h2>Your Dashboard</h2>
-  <h1 id="points">0</h1>
-  <button onclick="earn()">Earn +10</button>
-  <button onclick="logout()">Logout</button>
+<div id="dashboard" class="box" style="display:none;">
+<h2>Dashboard</h2>
+<h1 id="points">0</h1>
+<button onclick="earn()">Earn +10</button>
+<button onclick="logout()">Logout</button>
 </div>
 
 <script type="module">
-
-// Firebase imports
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+
 import {
-  getAuth,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged,
-  GoogleAuthProvider,
-  signInWithRedirect,
-  getRedirectResult
+getAuth,
+createUserWithEmailAndPassword,
+signInWithEmailAndPassword,
+signInWithRedirect,
+getRedirectResult,
+GoogleAuthProvider,
+signOut,
+onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
 import {
-  getFirestore,
-  doc,
-  setDoc,
-  getDoc,
-  updateDoc,
-  increment
+getFirestore,
+doc,
+setDoc,
+getDoc,
+updateDoc,
+increment
 } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
-// Firebase config
-const firebaseConfig = {
-  apiKey: "AIzaSyAQjcbcugInknWIbblR6a2G7Nzfyml7B0g",
-  authDomain: "easyreward-764ed.firebaseapp.com",
-  projectId: "easyreward-764ed"
+const firebaseConfig={
+apiKey:"AIzaSyAQjcbcugInknWIbblR6a2G7Nzfyml7B0g",
+authDomain:"easyreward-764ed.firebaseapp.com",
+projectId:"easyreward-764ed"
 };
 
-// Init
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+const app=initializeApp(firebaseConfig);
+const auth=getAuth(app);
+const db=getFirestore(app);
+const provider=new GoogleAuthProvider();
 
-let userId = null;
+let userId=null;
 
-// Email signup
-window.signup = async () => {
-  const user = await createUserWithEmailAndPassword(
-    auth,
-    email.value,
-    password.value
-  );
-
-  await setDoc(doc(db, "users", user.user.uid), { points: 0 });
+window.signup=async()=>{
+const user=await createUserWithEmailAndPassword(auth,email.value,password.value);
+await setDoc(doc(db,"users",user.user.uid),{points:0});
 };
 
-// Email login
-window.login = async () => {
-  await signInWithEmailAndPassword(auth, email.value, password.value);
+window.login=async()=>{
+await signInWithEmailAndPassword(auth,email.value,password.value);
 };
 
-// Google login (mobile safe)
-window.googleLogin = async () => {
-  const provider = new GoogleAuthProvider();
-  await signInWithRedirect(auth, provider);
+window.googleLogin=()=>{
+signInWithRedirect(auth,provider);
 };
 
-// After redirect return
-getRedirectResult(auth).then(async result => {
-  if (result && result.user) {
-    const ref = doc(db, "users", result.user.uid);
-    const snap = await getDoc(ref);
+window.logout=()=>signOut(auth);
 
-    if (!snap.exists()) {
-      await setDoc(ref, { points: 0 });
-    }
-  }
-});
-
-// Logout
-window.logout = () => signOut(auth);
-
-// Earn points
-window.earn = async () => {
-  const ref = doc(db, "users", userId);
-  await updateDoc(ref, { points: increment(10) });
-  loadPoints();
+window.earn=async()=>{
+const ref=doc(db,"users",userId);
+await updateDoc(ref,{points:increment(10)});
+loadPoints();
 };
 
-// Load points
-async function loadPoints() {
-  const snap = await getDoc(doc(db, "users", userId));
-  document.getElementById("points").innerText =
-    snap.data()?.points || 0;
+async function loadPoints(){
+const snap=await getDoc(doc(db,"users",userId));
+document.getElementById("points").innerText=snap.data().points;
 }
 
-// Auto login state
-onAuthStateChanged(auth, user => {
-  if (user) {
-    userId = user.uid;
-    loginBox.style.display = "none";
-    dashboardBox.style.display = "block";
-    loadPoints();
-  } else {
-    loginBox.style.display = "block";
-    dashboardBox.style.display = "none";
-  }
+/* 🔥 IMPORTANT — handle redirect result */
+getRedirectResult(auth).then(async(result)=>{
+if(result){
+const ref=doc(db,"users",result.user.uid);
+const snap=await getDoc(ref);
+if(!snap.exists()){
+await setDoc(ref,{points:0});
+}
+}
 });
 
+onAuthStateChanged(auth,async(user)=>{
+if(user){
+userId=user.uid;
+loginBox.style.display="none";
+dashboard.style.display="block";
+loadPoints();
+}else{
+loginBox.style.display="block";
+dashboard.style.display="none";
+}
+});
 </script>
 
 </body>
