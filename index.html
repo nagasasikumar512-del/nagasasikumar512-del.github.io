@@ -5,120 +5,105 @@
   <style>
     body {
       margin: 0;
-      font-family: Arial, sans-serif;
+      font-family: Arial;
       background: linear-gradient(135deg, #1e3c72, #2a5298);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-    }
-
-    .login-box {
-      background: white;
-      padding: 40px;
-      border-radius: 12px;
-      width: 320px;
+      color: white;
       text-align: center;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      padding: 20px;
     }
 
-    h1 {
-      margin-bottom: 20px;
-      color: #2a5298;
+    .box {
+      background: white;
+      color: black;
+      padding: 30px;
+      border-radius: 12px;
+      max-width: 350px;
+      margin: auto;
+      margin-top: 100px;
     }
 
-    input {
+    input, button {
       width: 100%;
       padding: 12px;
       margin: 8px 0;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-    }
-
-    button {
-      width: 100%;
-      padding: 12px;
-      margin-top: 10px;
-      border: none;
-      border-radius: 6px;
-      background: #2a5298;
-      color: white;
-      font-size: 16px;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background: #1e3c72;
-    }
-
-    #status {
-      margin-top: 10px;
-      font-weight: bold;
-      color: green;
     }
   </style>
 </head>
 
 <body>
 
-<div class="login-box">
-  <h1>EasyReward 💰</h1>
-
+<div id="login" class="box">
+  <h2>EasyReward 💰</h2>
   <input id="email" placeholder="Email">
   <input id="password" type="password" placeholder="Password">
-
   <button onclick="signup()">Sign Up</button>
   <button onclick="login()">Login</button>
+</div>
 
-  <p id="status"></p>
+<div id="dashboard" class="box" style="display:none;">
+  <h2>Your Dashboard</h2>
+  <h1 id="points">0</h1>
+  <button onclick="earn()">Earn +10</button>
+  <button onclick="logout()">Logout</button>
 </div>
 
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-analytics.js";
-  import {
-    getAuth,
-    createUserWithEmailAndPassword,
-    signInWithEmailAndPassword
-  } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged }
+from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyAQjcbcugInknWIbblR6a2G7Nzfyml7B0g",
-    authDomain: "easyreward-764ed.firebaseapp.com",
-    databaseURL: "https://easyreward-764ed-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "easyreward-764ed",
-    storageBucket: "easyreward-764ed.firebasestorage.app",
-    messagingSenderId: "146291320050",
-    appId: "1:146291320050:web:618cae66c02f3e294bdc6b",
-    measurementId: "G-VC1P35NWZ5"
-  };
+import { getFirestore, doc, setDoc, getDoc, updateDoc, increment }
+from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
-  const app = initializeApp(firebaseConfig);
-  getAnalytics(app);
+const firebaseConfig = {
+  apiKey: "AIzaSyAQjcbcugInknWIbblR6a2G7Nzfyml7B0g",
+  authDomain: "easyreward-764ed.firebaseapp.com",
+  projectId: "easyreward-764ed"
+};
 
-  const auth = getAuth(app);
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-  window.signup = function () {
-    const email = document.getElementById("email").value;
-    const password = document.getElementById("password").value;
+let userId = null;
 
-    createUserWithEmailAndPassword(auth, email, password)
-      .then(() => {
-        document.getElementById("status").innerText = "Signup successful ✅";
-      })
-      .catch(e => alert(e.message));
-  };
+window.signup = async function() {
+  const email = email.value;
+  const password = password.value;
+  const user = await createUserWithEmailAndPassword(auth, email, password);
+  await setDoc(doc(db, "users", user.user.uid), { points: 0 });
+}
 
-  window.login = function () {
-    const email = document.getElementById("email").value;
-    const password = document.getElementById("password").value;
+window.login = async function() {
+  await signInWithEmailAndPassword(auth, email.value, password.value);
+}
 
-    signInWithEmailAndPassword(auth, email, password)
-      .then(() => {
-        document.getElementById("status").innerText = "Login successful 🎉";
-      })
-      .catch(e => alert(e.message));
-  };
+window.logout = function() {
+  signOut(auth);
+}
+
+window.earn = async function() {
+  const ref = doc(db, "users", userId);
+  await updateDoc(ref, { points: increment(10) });
+  loadPoints();
+}
+
+async function loadPoints() {
+  const snap = await getDoc(doc(db, "users", userId));
+  document.getElementById("points").innerText = snap.data().points;
+}
+
+onAuthStateChanged(auth, async user => {
+  if (user) {
+    userId = user.uid;
+    login.style.display = "none";
+    dashboard.style.display = "block";
+    loadPoints();
+  } else {
+    login.style.display = "block";
+    dashboard.style.display = "none";
+  }
+});
 </script>
 
 </body>
