@@ -1,126 +1,121 @@
 <!DOCTYPE html>
+
 <html>
 <head>
-<title>EasyReward</title>
+  <title>EasyReward</title>
 
-<style>
-body {
-  margin:0;
-  font-family:Arial, sans-serif;
-  height:100vh;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  background:linear-gradient(135deg,#1e3c72,#2a5298);
-}
+  <!-- Mobile responsive -->
 
-/* Center card */
-.box {
-  background:white;
-  width:360px;
-  padding:35px;
-  border-radius:18px;
-  box-shadow:0 15px 35px rgba(0,0,0,0.3);
-  text-align:center;
-  animation:fadeIn 0.6s ease;
-}
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-@keyframes fadeIn {
-  from {opacity:0; transform:translateY(20px);}
-  to {opacity:1; transform:translateY(0);}
-}
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #1e3c72, #2a5298);
+      min-height: 100vh;
+    }
 
-h2 {
-  margin-bottom:20px;
-}
+    .box {
+      background: white;
+      color: black;
+      padding: 25px;
+      width: 100%;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
 
-input {
-  width:100%;
-  padding:14px;
-  margin:10px 0;
-  border-radius:10px;
-  border:1px solid #ccc;
-  font-size:15px;
-}
+    h2 {
+      text-align: center;
+      margin-top: 40px;
+      font-size: 28px;
+    }
 
-button {
-  width:100%;
-  padding:14px;
-  margin:10px 0;
-  border-radius:10px;
-  border:none;
-  font-size:16px;
-  cursor:pointer;
-  transition:0.2s;
-}
+    #points {
+      font-size: 60px;
+      text-align: center;
+      margin: 20px 0;
+    }
 
-/* Blue buttons */
-.primary {
-  background:#2a5298;
-  color:white;
-}
+    input, button {
+      width: 100%;
+      padding: 16px;
+      margin: 12px 0;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      font-size: 18px;
+      box-sizing: border-box;
+    }
 
-.primary:hover {
-  background:#1e3c72;
-}
+    button {
+      background: #3b5998;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
 
-/* Google button */
-.google {
-  background:white;
-  border:1px solid #ddd;
-}
+    .google-btn {
+      background: #f1f1f1;
+      color: black;
+    }
 
-.google:hover {
-  background:#f5f5f5;
-}
+    /* Desktop card style */
+    @media (min-width: 768px) {
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
 
-.dashboard h1 {
-  font-size:48px;
-  margin:15px 0;
-}
-</style>
+      .box {
+        max-width: 420px;
+        min-height: auto;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      }
+    }
+  </style>
 
 </head>
 
 <body>
 
+<!-- LOGIN SCREEN -->
+
 <div id="login" class="box">
+  <h2>EasyReward 💰</h2>
 
-<h2>EasyReward 💰</h2>
+  <input id="email" placeholder="Email">
+  <input id="password" type="password" placeholder="Password">
 
-<input id="email" placeholder="Email">
-<input id="password" type="password" placeholder="Password">
+<button onclick="signup()">Sign Up</button> <button onclick="loginUser()">Login</button>
 
-<button class="primary" onclick="signup()">Sign Up</button>
-<button class="primary" onclick="login()">Login</button>
-
-<button class="google" onclick="googleLogin()">
-🔵 Continue with Google
-</button>
-
+  <button class="google-btn" onclick="googleLogin()">
+    Continue with Google
+  </button>
 </div>
 
-<div id="dashboard" class="box dashboard" style="display:none">
+<!-- DASHBOARD -->
 
-<h2>Your Dashboard</h2>
-<h1 id="points">0</h1>
+<div id="dashboard" class="box" style="display:none;">
+  <h2>Your Dashboard</h2>
 
-<button class="primary" onclick="earn()">Earn +10</button>
-<button onclick="logout()">Logout</button>
+  <div id="points">0</div>
+
+<button onclick="earn()">Earn +10</button> <button onclick="logout()">Logout</button>
 
 </div>
 
 <script type="module">
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 
 import {
   getAuth,
-  GoogleAuthProvider,
-  signInWithPopup,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
+  GoogleAuthProvider,
+  signInWithPopup,
   onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
@@ -133,66 +128,98 @@ import {
   increment
 } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
+
+// 🔥 YOUR FIREBASE CONFIG
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
+  apiKey: "AIzaSyAQjcbcugInknWIbblR6a2G7Nzfyml7B0g",
   authDomain: "easyreward-764ed.firebaseapp.com",
-  projectId: "easyreward-764ed"
+  projectId: "easyreward-764ed",
 };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+const provider = new GoogleAuthProvider();
+
 let userId = null;
 
+
+// EMAIL SIGNUP
 window.signup = async () => {
-  const user = await createUserWithEmailAndPassword(auth,email.value,password.value);
-  await setDoc(doc(db,"users",user.user.uid),{points:0});
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+
+  const user = await createUserWithEmailAndPassword(auth, email, password);
+
+  await setDoc(doc(db, "users", user.user.uid), {
+    points: 0
+  });
 };
 
-window.login = async () => {
-  await signInWithEmailAndPassword(auth,email.value,password.value);
+
+// EMAIL LOGIN
+window.loginUser = async () => {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+
+  await signInWithEmailAndPassword(auth, email, password);
 };
 
+
+// GOOGLE LOGIN
 window.googleLogin = async () => {
-  const provider = new GoogleAuthProvider();
-  const result = await signInWithPopup(auth,provider);
+  const result = await signInWithPopup(auth, provider);
 
-  const ref = doc(db,"users",result.user.uid);
+  const ref = doc(db, "users", result.user.uid);
   const snap = await getDoc(ref);
 
-  if(!snap.exists()){
-    await setDoc(ref,{points:0});
+  if (!snap.exists()) {
+    await setDoc(ref, { points: 0 });
   }
 };
 
-window.logout = () => signOut(auth);
 
+// LOGOUT
+window.logout = () => {
+  signOut(auth);
+};
+
+
+// EARN POINTS
 window.earn = async () => {
-  const ref = doc(db,"users",userId);
-  await updateDoc(ref,{points:increment(10)});
+  const ref = doc(db, "users", userId);
+
+  await updateDoc(ref, {
+    points: increment(10)
+  });
+
   loadPoints();
 };
 
-async function loadPoints(){
-  const snap = await getDoc(doc(db,"users",userId));
+
+// LOAD POINTS
+async function loadPoints() {
+  const snap = await getDoc(doc(db, "users", userId));
   document.getElementById("points").innerText = snap.data().points;
 }
 
-onAuthStateChanged(auth,async user=>{
-  if(user){
-    userId=user.uid;
-    login.style.display="none";
-    dashboard.style.display="block";
+
+// AUTH STATE
+onAuthStateChanged(auth, async user => {
+  if (user) {
+    userId = user.uid;
+
+    document.getElementById("login").style.display = "none";
+    document.getElementById("dashboard").style.display = "block";
+
     loadPoints();
   } else {
-    login.style.display="block";
-    dashboard.style.display="none";
+    document.getElementById("login").style.display = "block";
+    document.getElementById("dashboard").style.display = "none";
   }
 });
-
 </script>
 
 </body>
 </html>
-
