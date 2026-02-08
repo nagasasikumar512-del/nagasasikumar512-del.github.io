@@ -1,77 +1,71 @@
 <!DOCTYPE html>
-
 <html>
 <head>
-  <title>EasyReward</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EasyReward</title>
 
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: linear-gradient(135deg, #1e3c72, #2a5298);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-    }
+<style>
+body {
+  margin: 0;
+  font-family: Arial;
+  background: linear-gradient(135deg,#1e3c72,#2a5298);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
 
-    .box {
-      background: white;
-      padding: 25px;
-      border-radius: 14px;
-      width: 90%;
-      max-width: 380px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-      text-align: center;
-    }
+.box {
+  background: white;
+  padding: 25px;
+  border-radius: 15px;
+  width: 90%;
+  max-width: 380px;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
 
-    h2 {
-      margin-bottom: 20px;
-    }
+h2 {
+  margin-bottom: 20px;
+}
 
-    input, button {
-      width: 100%;
-      padding: 14px;
-      margin: 8px 0;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      font-size: 16px;
-    }
+input, button {
+  width: 100%;
+  padding: 14px;
+  margin: 8px 0;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 16px;
+}
 
-    button {
-      background: #2a5298;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
+button {
+  background: #3b5998;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
 
-    button:hover {
-      opacity: 0.9;
-    }
-
-    .google-btn {
-      background: #f5f5f5;
-      color: black;
-      border: 1px solid #ddd;
-    }
-  </style>
-
+button.google {
+  background: #eee;
+  color: black;
+}
+</style>
 </head>
 
 <body>
 
-<div id="login" class="box">
+<!-- LOGIN -->
+<div id="loginBox" class="box">
   <h2>EasyReward 💰</h2>
-
   <input id="email" placeholder="Email">
   <input id="password" type="password" placeholder="Password">
-
-<button onclick="signup()">Sign Up</button> <button onclick="login()">Login</button> <button class="google-btn" onclick="googleLogin()">Continue with Google</button>
-
+  <button onclick="signup()">Sign Up</button>
+  <button onclick="login()">Login</button>
+  <button class="google" onclick="googleLogin()">Continue with Google</button>
 </div>
 
-<div id="dashboard" class="box" style="display:none;">
+<!-- DASHBOARD -->
+<div id="dashboardBox" class="box" style="display:none;">
   <h2>Your Dashboard</h2>
   <h1 id="points">0</h1>
   <button onclick="earn()">Earn +10</button>
@@ -79,17 +73,18 @@
 </div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 
+// Firebase imports
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import {
   getAuth,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
+  onAuthStateChanged,
   GoogleAuthProvider,
   signInWithRedirect,
-  getRedirectResult,
-  onAuthStateChanged
+  getRedirectResult
 } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
 import {
@@ -101,12 +96,14 @@ import {
   increment
 } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
+// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyAQjcbcugInknWIbblR6a2G7Nzfyml7B0g",
   authDomain: "easyreward-764ed.firebaseapp.com",
   projectId: "easyreward-764ed"
 };
 
+// Init
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
@@ -120,6 +117,7 @@ window.signup = async () => {
     email.value,
     password.value
   );
+
   await setDoc(doc(db, "users", user.user.uid), { points: 0 });
 };
 
@@ -128,7 +126,7 @@ window.login = async () => {
   await signInWithEmailAndPassword(auth, email.value, password.value);
 };
 
-// Google login (redirect version)
+// Google login (mobile safe)
 window.googleLogin = async () => {
   const provider = new GoogleAuthProvider();
   await signInWithRedirect(auth, provider);
@@ -136,9 +134,10 @@ window.googleLogin = async () => {
 
 // After redirect return
 getRedirectResult(auth).then(async result => {
-  if (result?.user) {
+  if (result && result.user) {
     const ref = doc(db, "users", result.user.uid);
     const snap = await getDoc(ref);
+
     if (!snap.exists()) {
       await setDoc(ref, { points: 0 });
     }
@@ -158,21 +157,23 @@ window.earn = async () => {
 // Load points
 async function loadPoints() {
   const snap = await getDoc(doc(db, "users", userId));
-  document.getElementById("points").innerText = snap.data().points;
+  document.getElementById("points").innerText =
+    snap.data()?.points || 0;
 }
 
-// Auth state
-onAuthStateChanged(auth, async user => {
+// Auto login state
+onAuthStateChanged(auth, user => {
   if (user) {
     userId = user.uid;
-    login.style.display = "none";
-    dashboard.style.display = "block";
+    loginBox.style.display = "none";
+    dashboardBox.style.display = "block";
     loadPoints();
   } else {
-    login.style.display = "block";
-    dashboard.style.display = "none";
+    loginBox.style.display = "block";
+    dashboardBox.style.display = "none";
   }
 });
+
 </script>
 
 </body>
