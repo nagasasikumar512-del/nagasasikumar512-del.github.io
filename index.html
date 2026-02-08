@@ -3,9 +3,6 @@
 <html>
 <head>
   <title>EasyReward</title>
-
-  <!-- Mobile responsive -->
-
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
@@ -13,66 +10,50 @@
       margin: 0;
       font-family: Arial, sans-serif;
       background: linear-gradient(135deg, #1e3c72, #2a5298);
-      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
     }
 
     .box {
       background: white;
-      color: black;
       padding: 25px;
-      width: 100%;
-      min-height: 100vh;
-      box-sizing: border-box;
+      border-radius: 14px;
+      width: 90%;
+      max-width: 380px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      text-align: center;
     }
 
     h2 {
-      text-align: center;
-      margin-top: 40px;
-      font-size: 28px;
-    }
-
-    #points {
-      font-size: 60px;
-      text-align: center;
-      margin: 20px 0;
+      margin-bottom: 20px;
     }
 
     input, button {
       width: 100%;
-      padding: 16px;
-      margin: 12px 0;
-      border-radius: 10px;
+      padding: 14px;
+      margin: 8px 0;
+      border-radius: 8px;
       border: 1px solid #ccc;
-      font-size: 18px;
-      box-sizing: border-box;
+      font-size: 16px;
     }
 
     button {
-      background: #3b5998;
+      background: #2a5298;
       color: white;
       border: none;
       cursor: pointer;
     }
 
-    .google-btn {
-      background: #f1f1f1;
-      color: black;
+    button:hover {
+      opacity: 0.9;
     }
 
-    /* Desktop card style */
-    @media (min-width: 768px) {
-      body {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-      }
-
-      .box {
-        max-width: 420px;
-        min-height: auto;
-        border-radius: 12px;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-      }
+    .google-btn {
+      background: #f5f5f5;
+      color: black;
+      border: 1px solid #ddd;
     }
   </style>
 
@@ -80,30 +61,21 @@
 
 <body>
 
-<!-- LOGIN SCREEN -->
-
 <div id="login" class="box">
   <h2>EasyReward 💰</h2>
 
   <input id="email" placeholder="Email">
   <input id="password" type="password" placeholder="Password">
 
-<button onclick="signup()">Sign Up</button> <button onclick="loginUser()">Login</button>
+<button onclick="signup()">Sign Up</button> <button onclick="login()">Login</button> <button class="google-btn" onclick="googleLogin()">Continue with Google</button>
 
-  <button class="google-btn" onclick="googleLogin()">
-    Continue with Google
-  </button>
 </div>
-
-<!-- DASHBOARD -->
 
 <div id="dashboard" class="box" style="display:none;">
   <h2>Your Dashboard</h2>
-
-  <div id="points">0</div>
-
-<button onclick="earn()">Earn +10</button> <button onclick="logout()">Logout</button>
-
+  <h1 id="points">0</h1>
+  <button onclick="earn()">Earn +10</button>
+  <button onclick="logout()">Logout</button>
 </div>
 
 <script type="module">
@@ -115,7 +87,8 @@ import {
   signInWithEmailAndPassword,
   signOut,
   GoogleAuthProvider,
-  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
@@ -128,95 +101,76 @@ import {
   increment
 } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
-
-// 🔥 YOUR FIREBASE CONFIG
 const firebaseConfig = {
   apiKey: "AIzaSyAQjcbcugInknWIbblR6a2G7Nzfyml7B0g",
   authDomain: "easyreward-764ed.firebaseapp.com",
-  projectId: "easyreward-764ed",
+  projectId: "easyreward-764ed"
 };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-const provider = new GoogleAuthProvider();
-
 let userId = null;
 
-
-// EMAIL SIGNUP
+// Email signup
 window.signup = async () => {
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
-
-  const user = await createUserWithEmailAndPassword(auth, email, password);
-
-  await setDoc(doc(db, "users", user.user.uid), {
-    points: 0
-  });
+  const user = await createUserWithEmailAndPassword(
+    auth,
+    email.value,
+    password.value
+  );
+  await setDoc(doc(db, "users", user.user.uid), { points: 0 });
 };
 
-
-// EMAIL LOGIN
-window.loginUser = async () => {
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
-
-  await signInWithEmailAndPassword(auth, email, password);
+// Email login
+window.login = async () => {
+  await signInWithEmailAndPassword(auth, email.value, password.value);
 };
 
-
-// GOOGLE LOGIN
+// Google login (redirect version)
 window.googleLogin = async () => {
-  const result = await signInWithPopup(auth, provider);
+  const provider = new GoogleAuthProvider();
+  await signInWithRedirect(auth, provider);
+};
 
-  const ref = doc(db, "users", result.user.uid);
-  const snap = await getDoc(ref);
-
-  if (!snap.exists()) {
-    await setDoc(ref, { points: 0 });
+// After redirect return
+getRedirectResult(auth).then(async result => {
+  if (result?.user) {
+    const ref = doc(db, "users", result.user.uid);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) {
+      await setDoc(ref, { points: 0 });
+    }
   }
-};
+});
 
+// Logout
+window.logout = () => signOut(auth);
 
-// LOGOUT
-window.logout = () => {
-  signOut(auth);
-};
-
-
-// EARN POINTS
+// Earn points
 window.earn = async () => {
   const ref = doc(db, "users", userId);
-
-  await updateDoc(ref, {
-    points: increment(10)
-  });
-
+  await updateDoc(ref, { points: increment(10) });
   loadPoints();
 };
 
-
-// LOAD POINTS
+// Load points
 async function loadPoints() {
   const snap = await getDoc(doc(db, "users", userId));
   document.getElementById("points").innerText = snap.data().points;
 }
 
-
-// AUTH STATE
+// Auth state
 onAuthStateChanged(auth, async user => {
   if (user) {
     userId = user.uid;
-
-    document.getElementById("login").style.display = "none";
-    document.getElementById("dashboard").style.display = "block";
-
+    login.style.display = "none";
+    dashboard.style.display = "block";
     loadPoints();
   } else {
-    document.getElementById("login").style.display = "block";
-    document.getElementById("dashboard").style.display = "none";
+    login.style.display = "block";
+    dashboard.style.display = "none";
   }
 });
 </script>
