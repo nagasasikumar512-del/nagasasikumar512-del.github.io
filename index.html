@@ -1,51 +1,68 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>My Website</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: linear-gradient(135deg, #0077ff, #00c6ff);
-      color: white;
-      text-align: center;
-    }
-
-    .container {
-      margin-top: 100px;
-    }
-
-    h1 {
-      font-size: 50px;
-    }
-
-    button {
-      padding: 12px 25px;
-      font-size: 18px;
-      border: none;
-      border-radius: 8px;
-      background: white;
-      color: #0077ff;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background: #f0f0f0;
-    }
-  </style>
+  <title>EasyReward Login</title>
 </head>
-
 <body>
-  <div class="container">
-    <h1>Welcome to My Website 🚀</h1>
-    <p>This site is hosted for FREE on GitHub Pages!</p>
-    <button onclick="showMessage()">Click Me</button>
-  </div>
 
-  <script>
-    function showMessage() {
-      alert("Thanks for visiting my website!");
-    }
-  </script>
+<h1>EasyReward 🔐</h1>
+
+<input id="email" placeholder="Email"><br><br>
+<input id="password" type="password" placeholder="Password"><br><br>
+
+<button onclick="signup()">Sign Up</button>
+<button onclick="login()">Login</button>
+
+<p id="status"></p>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-analytics.js";
+  import {
+    getAuth,
+    createUserWithEmailAndPassword,
+    signInWithEmailAndPassword
+  } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAQjcbcugInknWIbblR6a2G7Nzfyml7B0g",
+    authDomain: "easyreward-764ed.firebaseapp.com",
+    databaseURL: "https://easyreward-764ed-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "easyreward-764ed",
+    storageBucket: "easyreward-764ed.firebasestorage.app",
+    messagingSenderId: "146291320050",
+    appId: "1:146291320050:web:618cae66c02f3e294bdc6b",
+    measurementId: "G-VC1P35NWZ5"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  getAnalytics(app);
+
+  const auth = getAuth(app);
+
+  window.signup = function () {
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+
+    createUserWithEmailAndPassword(auth, email, password)
+      .then(() => {
+        document.getElementById("status").innerText = "Signup successful ✅";
+      })
+      .catch(e => alert(e.message));
+  };
+
+  window.login = function () {
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+
+    signInWithEmailAndPassword(auth, email, password)
+      .then(() => {
+        document.getElementById("status").innerText = "Login successful 🎉";
+      })
+      .catch(e => alert(e.message));
+  };
+</script>
+
 </body>
 </html>
+
