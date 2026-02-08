@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html>
 <head>
   <title>EasyReward</title>
@@ -12,49 +13,90 @@
       padding: 20px;
     }
 
-    .box {
-      background: white;
-      color: black;
-      padding: 30px;
-      border-radius: 12px;
-      max-width: 350px;
-      margin: auto;
-      margin-top: 100px;
-    }
+```
+.box {
+  background: white;
+  color: black;
+  padding: 30px;
+  border-radius: 12px;
+  max-width: 350px;
+  margin: auto;
+  margin-top: 100px;
+}
 
-    input, button {
-      width: 100%;
-      padding: 12px;
-      margin: 8px 0;
-    }
+input, button {
+  width: 100%;
+  padding: 12px;
+  margin: 8px 0;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 16px;
+}
+
+button {
+  background: #2a5298;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+button:hover {
+  opacity: 0.9;
+}
+```
+
   </style>
 </head>
 
 <body>
 
-<div id="login" class="box">
+<!-- LOGIN BOX -->
+
+<div id="loginBox" class="box">
   <h2>EasyReward 💰</h2>
+
   <input id="email" placeholder="Email">
   <input id="password" type="password" placeholder="Password">
-  <button onclick="signup()">Sign Up</button>
-  <button onclick="login()">Login</button>
+
+<button onclick="signup()">Sign Up</button> <button onclick="login()">Login</button> <button onclick="googleLogin()">Sign in with Google</button>
+
 </div>
 
-<div id="dashboard" class="box" style="display:none;">
+<!-- DASHBOARD -->
+
+<div id="dashboardBox" class="box" style="display:none;">
   <h2>Your Dashboard</h2>
   <h1 id="points">0</h1>
-  <button onclick="earn()">Earn +10</button>
-  <button onclick="logout()">Logout</button>
+
+<button onclick="earn()">Earn +10</button> <button onclick="logout()">Logout</button>
+
 </div>
 
 <script type="module">
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged }
-from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
-import { getFirestore, doc, setDoc, getDoc, updateDoc, increment }
-from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signOut,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
+import {
+  getFirestore,
+  doc,
+  setDoc,
+  getDoc,
+  updateDoc,
+  increment
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+
+// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyAQjcbcugInknWIbblR6a2G7Nzfyml7B0g",
   authDomain: "easyreward-764ed.firebaseapp.com",
@@ -67,43 +109,80 @@ const db = getFirestore(app);
 
 let userId = null;
 
-window.signup = async function() {
-  const email = email.value;
-  const password = password.value;
-  const user = await createUserWithEmailAndPassword(auth, email, password);
+const emailInput = document.getElementById("email");
+const passwordInput = document.getElementById("password");
+
+
+// SIGN UP
+window.signup = async () => {
+  const user = await createUserWithEmailAndPassword(
+    auth,
+    emailInput.value,
+    passwordInput.value
+  );
+
   await setDoc(doc(db, "users", user.user.uid), { points: 0 });
-}
+};
 
-window.login = async function() {
-  await signInWithEmailAndPassword(auth, email.value, password.value);
-}
 
-window.logout = function() {
-  signOut(auth);
-}
+// LOGIN
+window.login = async () => {
+  await signInWithEmailAndPassword(
+    auth,
+    emailInput.value,
+    passwordInput.value
+  );
+};
 
-window.earn = async function() {
+
+// GOOGLE LOGIN
+window.googleLogin = async () => {
+  const provider = new GoogleAuthProvider();
+  const result = await signInWithPopup(auth, provider);
+
+  const ref = doc(db, "users", result.user.uid);
+  const snap = await getDoc(ref);
+
+  if (!snap.exists()) {
+    await setDoc(ref, { points: 0 });
+  }
+};
+
+
+// LOGOUT
+window.logout = () => signOut(auth);
+
+
+// EARN POINTS
+window.earn = async () => {
   const ref = doc(db, "users", userId);
   await updateDoc(ref, { points: increment(10) });
   loadPoints();
-}
+};
 
+
+// LOAD POINTS
 async function loadPoints() {
   const snap = await getDoc(doc(db, "users", userId));
   document.getElementById("points").innerText = snap.data().points;
 }
 
+
+// AUTH STATE LISTENER
 onAuthStateChanged(auth, async user => {
   if (user) {
     userId = user.uid;
-    login.style.display = "none";
-    dashboard.style.display = "block";
+
+    loginBox.style.display = "none";
+    dashboardBox.style.display = "block";
+
     loadPoints();
   } else {
-    login.style.display = "block";
-    dashboard.style.display = "none";
+    loginBox.style.display = "block";
+    dashboardBox.style.display = "none";
   }
 });
+
 </script>
 
 </body>
