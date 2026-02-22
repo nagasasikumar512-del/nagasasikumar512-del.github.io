@@ -1,53 +1,68 @@
 <!DOCTYPE html>
-
 <html>
 <head>
 <title>EasyReward</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-body {
-  margin: 0;
-  font-family: Arial;
-  background: linear-gradient(135deg,#1e3c72,#2a5298);
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:100vh;
+body{
+margin:0;
+font-family:Arial, sans-serif;
+background:linear-gradient(135deg,#1e3c72,#2a5298);
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
 }
 
-.box {
-  background:white;
-  padding:25px;
-  border-radius:16px;
-  width:90%;
-  max-width:420px;
-  text-align:center;
-  box-shadow:0 10px 25px rgba(0,0,0,0.2);
+.box{
+background:#fff;
+padding:30px;
+border-radius:18px;
+width:90%;
+max-width:420px;
+text-align:center;
+box-shadow:0 15px 30px rgba(0,0,0,0.25);
+animation:fade 0.4s ease;
+}
+
+@keyframes fade{
+from{opacity:0;transform:translateY(10px);}
+to{opacity:1;transform:translateY(0);}
 }
 
 input,button{
-  width:100%;
-  padding:14px;
-  margin:8px 0;
-  border-radius:8px;
-  border:1px solid #ccc;
-  font-size:16px;
+width:100%;
+padding:14px;
+margin:8px 0;
+border-radius:10px;
+border:1px solid #ddd;
+font-size:16px;
 }
 
 button{
-  background:#2a5298;
-  color:white;
-  border:none;
+background:#2a5298;
+color:white;
+border:none;
+cursor:pointer;
+font-weight:bold;
+}
+
+button:hover{
+opacity:0.9;
 }
 
 .google{
-  background:#f5f5f5;
-  color:black;
-  border:1px solid #ccc;
+background:#f5f5f5;
+color:black;
+border:1px solid #ccc;
+}
+
+.small{
+font-size:13px;
+color:gray;
 }
 </style>
-
 </head>
 
 <body>
@@ -55,11 +70,14 @@ button{
 <div id="loginBox" class="box">
 <h2>EasyReward 💰</h2>
 
-<input id="email" placeholder="Email">
-<input id="password" type="password" placeholder="Password">
+<input id="email" type="email" placeholder="Email" required>
+<input id="password" type="password" placeholder="Password" required>
 
-<button onclick="signup()">Sign Up</button> <button onclick="login()">Login</button> <button class="google" onclick="googleLogin()">Continue with Google</button>
+<button onclick="signup()">Sign Up</button>
+<button onclick="login()">Login</button>
+<button class="google" onclick="googleLogin()">Continue with Google</button>
 
+<p class="small">Verify email after signup</p>
 </div>
 
 <div id="dashboard" class="box" style="display:none;">
@@ -70,15 +88,16 @@ button{
 </div>
 
 <script type="module">
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 
 import {
 getAuth,
 createUserWithEmailAndPassword,
 signInWithEmailAndPassword,
-signInWithRedirect,
-getRedirectResult,
 GoogleAuthProvider,
+signInWithPopup,
+sendEmailVerification,
 signOut,
 onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
@@ -92,6 +111,7 @@ updateDoc,
 increment
 } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
+/* 🔥 YOUR FIREBASE CONFIG */
 const firebaseConfig={
 apiKey:"AIzaSyAQjcbcugInknWIbblR6a2G7Nzfyml7B0g",
 authDomain:"easyreward-764ed.firebaseapp.com",
@@ -105,43 +125,83 @@ const provider=new GoogleAuthProvider();
 
 let userId=null;
 
+/* SIGN UP */
 window.signup=async()=>{
-const user=await createUserWithEmailAndPassword(auth,email.value,password.value);
-await setDoc(doc(db,"users",user.user.uid),{points:0});
+try{
+const userCred=await createUserWithEmailAndPassword(
+auth,
+email.value,
+password.value
+);
+
+await sendEmailVerification(userCred.user);
+
+await setDoc(doc(db,"users",userCred.user.uid),{
+points:0,
+createdAt:new Date()
+});
+
+alert("Signup successful! Verify your email.");
+}catch(error){
+alert(error.message);
+}
 };
 
+/* LOGIN */
 window.login=async()=>{
-await signInWithEmailAndPassword(auth,email.value,password.value);
+try{
+const userCred=await signInWithEmailAndPassword(
+auth,
+email.value,
+password.value
+);
+
+if(!userCred.user.emailVerified){
+alert("Please verify your email first.");
+await signOut(auth);
+return;
+}
+
+}catch(error){
+alert(error.message);
+}
 };
 
-window.googleLogin=()=>{
-signInWithRedirect(auth,provider);
+/* GOOGLE LOGIN */
+window.googleLogin=async()=>{
+try{
+const result=await signInWithPopup(auth,provider);
+const ref=doc(db,"users",result.user.uid);
+const snap=await getDoc(ref);
+
+if(!snap.exists()){
+await setDoc(ref,{
+points:0,
+createdAt:new Date()
+});
+}
+}catch(error){
+alert(error.message);
+}
 };
 
+/* LOGOUT */
 window.logout=()=>signOut(auth);
 
+/* EARN POINTS */
 window.earn=async()=>{
 const ref=doc(db,"users",userId);
 await updateDoc(ref,{points:increment(10)});
 loadPoints();
 };
 
+/* LOAD POINTS */
 async function loadPoints(){
 const snap=await getDoc(doc(db,"users",userId));
 document.getElementById("points").innerText=snap.data().points;
 }
 
-/* 🔥 IMPORTANT — handle redirect result */
-getRedirectResult(auth).then(async(result)=>{
-if(result){
-const ref=doc(db,"users",result.user.uid);
-const snap=await getDoc(ref);
-if(!snap.exists()){
-await setDoc(ref,{points:0});
-}
-}
-});
-
+/* AUTH STATE */
 onAuthStateChanged(auth,async(user)=>{
 if(user){
 userId=user.uid;
@@ -153,6 +213,7 @@ loginBox.style.display="block";
 dashboard.style.display="none";
 }
 });
+
 </script>
 
 </body>
